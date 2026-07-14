@@ -53,7 +53,6 @@
             border-radius: 30px;
             display: inline-block;
         }
-        /* Checkerboard grid layout */
         .drop-zone {
             background: #d4e2ec;
             border-radius: 40px;
@@ -77,7 +76,6 @@
             background: #c0dae8;
             border-color: #f3a712;
         }
-        /* Position each slot in the grid */
         .drop-slot {
             width: 70px;
             height: 70px;
@@ -110,14 +108,12 @@
             text-transform: uppercase;
             margin-top: 2px;
         }
-        /* Position each slot in the checkerboard */
-        .drop-slot[data-index="0"] { grid-column: 2; grid-row: 1; } /* Top - S */
-        .drop-slot[data-index="1"] { grid-column: 3; grid-row: 2; } /* Right - H */
-        .drop-slot[data-index="2"] { grid-column: 2; grid-row: 3; } /* Bottom - E */
-        .drop-slot[data-index="3"] { grid-column: 1; grid-row: 2; } /* Left - L (Others) */
-        .drop-slot[data-index="4"] { grid-column: 2; grid-row: 2; } /* Center - L (You) */
+        .drop-slot[data-index="0"] { grid-column: 2; grid-row: 1; }
+        .drop-slot[data-index="1"] { grid-column: 3; grid-row: 2; }
+        .drop-slot[data-index="2"] { grid-column: 2; grid-row: 3; }
+        .drop-slot[data-index="3"] { grid-column: 1; grid-row: 2; }
+        .drop-slot[data-index="4"] { grid-column: 2; grid-row: 2; }
 
-        /* Tooltip */
         .drop-slot .tooltip {
             visibility: hidden;
             opacity: 0;
@@ -164,7 +160,6 @@
             opacity: 1;
         }
 
-        /* Center L slot (Individual Liveware) - special styling */
         .drop-slot.center-l {
             border-color: #b68b40;
             background: #f5d78e;
@@ -195,8 +190,25 @@
             border-color: #f3a712;
             transform: scale(1.05);
         }
+        /* Wrong slot flash */
+        .drop-slot.wrong-flash {
+            animation: wrong-flash 0.5s ease;
+        }
+        @keyframes wrong-flash {
+            0%, 100% { background: #ffffffcc; }
+            25% { background: #ff6b6b; border-color: #c0392b; }
+            75% { background: #ff6b6b; border-color: #c0392b; }
+        }
+        /* Correct slot flash */
+        .drop-slot.correct-flash {
+            animation: correct-flash 0.5s ease;
+        }
+        @keyframes correct-flash {
+            0%, 100% { background: #ffffffcc; }
+            25% { background: #6bcf7f; border-color: #27ae60; }
+            75% { background: #6bcf7f; border-color: #27ae60; }
+        }
 
-        /* Connection lines (visual) */
         .drop-zone::before {
             content: '';
             position: absolute;
@@ -273,7 +285,6 @@
             border-color: #b68b40;
             box-shadow: 0 5px 0 #7a5f30, 0 8px 16px rgba(0,0,0,0.2);
         }
-        /* Special highlight for the L tile that should go in center */
         .letter-tile.letter-l-center {
             background: #f5c842;
             border-color: #b68b40;
@@ -382,6 +393,22 @@
         .legend-color.outer {
             background: #ffffffcc;
         }
+        /* Sound toggle */
+        .sound-toggle {
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #1f5a72;
+        }
+        .sound-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #b68b40;
+        }
 
         @media (max-width: 480px) {
             .game-container { padding: 14px 10px 22px; border-radius: 28px; }
@@ -424,7 +451,6 @@
     <div class="model-hint">👤 <strong>YOU</strong> are at the center — surrounded by the other elements</div>
 
     <div class="drop-zone" id="dropZone">
-        <!-- Grid positions: Top, Right, Bottom, Left, Center -->
         <div class="drop-slot" data-index="0" data-expected="S">
             <span class="letter-display"></span>
             <span class="slot-label">S</span>
@@ -475,6 +501,11 @@
     </div>
     <div class="status-msg" id="statusMsg"></div>
 
+    <div class="sound-toggle">
+        <input type="checkbox" id="soundToggle" checked />
+        <label for="soundToggle">🔊 Sound Feedback</label>
+    </div>
+
     <div class="legend">
         <span class="legend-item">
             <span class="legend-color center"></span> ★ YOU (Center)
@@ -492,7 +523,6 @@
     (function() {
         'use strict';
 
-        // Correct positions: Top=S, Right=H, Bottom=E, Left=L, Center=L
         const CORRECT = ['S', 'H', 'E', 'L', 'L'];
         const LETTERS = ['S', 'H', 'E', 'L', 'L'];
 
@@ -501,11 +531,10 @@
         const statusMsg = document.getElementById('statusMsg');
         const resetBtn = document.getElementById('resetBtn');
         const checkBtn = document.getElementById('checkBtn');
+        const soundToggle = document.getElementById('soundToggle');
 
         let slots = ['', '', '', '', ''];
         let tileLetters = [];
-
-        // Touch drag state
         let isDragging = false;
         let dragTile = null;
         let dragLetter = '';
@@ -514,7 +543,70 @@
         let touchOffsetX = 0;
         let touchOffsetY = 0;
 
-        // ---- Tooltip toggle for mobile ----
+        // ---- Sound System ----
+        function playSound(type) {
+            if (!soundToggle.checked) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                switch(type) {
+                    case 'correct':
+                        oscillator.frequency.value = 880;
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.2);
+                        break;
+                    case 'wrong':
+                        oscillator.frequency.value = 300;
+                        oscillator.type = 'sawtooth';
+                        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.3);
+                        break;
+                    case 'victory':
+                        // Play ascending tones
+                        const freqs = [523, 659, 784, 1047];
+                        freqs.forEach((freq, i) => {
+                            const osc = audioCtx.createOscillator();
+                            const gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.frequency.value = freq;
+                            osc.type = 'sine';
+                            gain.gain.setValueAtTime(0.25, audioCtx.currentTime + i * 0.12);
+                            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.2);
+                            osc.start(audioCtx.currentTime + i * 0.12);
+                            osc.stop(audioCtx.currentTime + i * 0.12 + 0.2);
+                        });
+                        break;
+                }
+            } catch(e) {
+                // Silent fallback if AudioContext fails
+            }
+        }
+
+        // ---- Flash animation helpers ----
+        function flashSlot(slotIndex, type) {
+            const slots = document.querySelectorAll('.drop-slot');
+            const el = slots[slotIndex];
+            if (!el) return;
+            el.classList.remove('wrong-flash', 'correct-flash');
+            // Force reflow
+            void el.offsetWidth;
+            el.classList.add(type === 'correct' ? 'correct-flash' : 'wrong-flash');
+            setTimeout(() => {
+                el.classList.remove('wrong-flash', 'correct-flash');
+            }, 600);
+        }
+
+        // ---- Tooltip toggle ----
         function setupTooltipToggle() {
             const slots = document.querySelectorAll('.drop-slot');
             slots.forEach(slot => {
@@ -543,14 +635,12 @@
                 const display = el.querySelector('.letter-display');
                 if (display) display.textContent = letter;
                 el.classList.toggle('filled', letter !== '');
-                // Center slot is index 4
                 if (i === 4) {
                     el.classList.add('center-l');
                 }
             });
 
             pool.innerHTML = '';
-            // Track if we have L tiles to highlight one as "center"
             let lCount = 0;
             tileLetters.forEach((letter) => {
                 if (letter === 'L') lCount++;
@@ -562,10 +652,8 @@
                 tile.className = 'letter-tile';
                 if (letter === 'L') {
                     tile.classList.add('letter-l');
-                    // If there are 2 L's, highlight one as the "center" tile
                     if (lCount === 2 && lAssigned === 0) {
                         tile.classList.add('letter-l-center');
-                        tile.dataset.centerCandidate = 'true';
                     }
                     lAssigned++;
                 }
@@ -582,11 +670,14 @@
             });
 
             if (!isCorrect()) {
-                statusMsg.textContent = '';
+                if (!statusMsg.textContent.includes('center')) {
+                    statusMsg.textContent = '';
+                }
                 statusMsg.className = 'status-msg';
             } else {
                 statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                 statusMsg.className = 'status-msg win';
+                playSound('victory');
             }
         }
 
@@ -612,8 +703,29 @@
             render();
         }
 
-        // ---- Perform drop ----
+        // ---- Perform drop with sound feedback ----
         function performDrop(letter, slotIndex) {
+            const expected = CORRECT[slotIndex];
+            const isCorrectPlacement = (letter === expected);
+
+            if (!isCorrectPlacement) {
+                // Wrong slot — flash red and play buzz
+                flashSlot(slotIndex, 'wrong');
+                playSound('wrong');
+                // Shake the tile slightly
+                const tile = document.querySelector(`.letter-tile[data-letter="${letter}"]`);
+                if (tile) {
+                    tile.style.animation = 'shake 0.4s ease';
+                    setTimeout(() => { tile.style.animation = ''; }, 500);
+                }
+                return false;
+            }
+
+            // Correct placement!
+            flashSlot(slotIndex, 'correct');
+            playSound('correct');
+
+            // If slot is occupied, swap
             if (slots[slotIndex] !== '') {
                 const slotLetter = slots[slotIndex];
                 tileLetters.push(slotLetter);
@@ -628,10 +740,12 @@
                 if (isCorrect()) {
                     statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                     statusMsg.className = 'status-msg win';
+                    playSound('victory');
                 }
                 return true;
             }
 
+            // Slot is empty
             const idx = tileLetters.indexOf(letter);
             if (idx !== -1) {
                 tileLetters.splice(idx, 1);
@@ -640,11 +754,25 @@
                 if (isCorrect()) {
                     statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                     statusMsg.className = 'status-msg win';
+                    playSound('victory');
                 }
                 return true;
             }
             return false;
         }
+
+        // ---- Shake animation for wrong placement ----
+        const shakeStyle = document.createElement('style');
+        shakeStyle.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                20% { transform: translateX(-8px) rotate(-2deg); }
+                40% { transform: translateX(8px) rotate(2deg); }
+                60% { transform: translateX(-5px); }
+                80% { transform: translateX(5px); }
+            }
+        `;
+        document.head.appendChild(shakeStyle);
 
         // ---- TOUCH HANDLERS ----
         function onTouchStart(e) {
@@ -803,9 +931,11 @@
             if (isCorrect()) {
                 statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                 statusMsg.className = 'status-msg win';
+                playSound('victory');
             } else {
                 statusMsg.textContent = '❌ Not quite right. Remember: YOU (L) are at the center!';
                 statusMsg.className = 'status-msg';
+                playSound('wrong');
             }
         }
 
