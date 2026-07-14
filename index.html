@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>SHELL Model - Drag & Drop</title>
+    <title>SHELL Model - Human at the Center</title>
     <style>
         * {
             box-sizing: border-box;
@@ -26,7 +26,7 @@
             padding: 20px 16px 30px;
             border-radius: 40px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            max-width: 550px;
+            max-width: 650px;
             width: 100%;
             text-align: center;
         }
@@ -38,10 +38,20 @@
             color: #0b2a3b;
         }
         .subtitle {
-            margin: 0 0 14px 0;
+            margin: 0 0 6px 0;
             color: #1f5a72;
             font-weight: 500;
             font-size: 0.9rem;
+        }
+        .model-hint {
+            margin: 0 0 14px 0;
+            color: #b68b40;
+            font-weight: 700;
+            font-size: 0.85rem;
+            background: #f5e6c8;
+            padding: 6px 14px;
+            border-radius: 30px;
+            display: inline-block;
         }
         .drop-zone {
             background: #d4e2ec;
@@ -53,21 +63,23 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             transition: background 0.2s;
+            position: relative;
         }
         .drop-zone.drag-over {
             background: #c0dae8;
             border-color: #f3a712;
         }
         .drop-slot {
-            width: 64px;
-            height: 64px;
+            width: 72px;
+            height: 80px;
             background: #ffffffcc;
             border-radius: 16px;
             border: 3px solid #2b7a8f;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-size: 1.8rem;
@@ -76,6 +88,86 @@
             transition: 0.15s;
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
             touch-action: none;
+            position: relative;
+            cursor: help;
+        }
+        .drop-slot .letter-display {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .drop-slot .slot-label {
+            font-size: 0.5rem;
+            font-weight: 700;
+            color: #1f5a72;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        /* Tooltip */
+        .drop-slot .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0b2a3b;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            width: 160px;
+            text-align: center;
+            transition: opacity 0.25s, visibility 0.25s;
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            line-height: 1.4;
+        }
+        .drop-slot .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0b2a3b;
+        }
+        .drop-slot .tooltip .tooltip-title {
+            font-weight: 700;
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 2px;
+            color: #f3a712;
+        }
+        /* Show tooltip on hover (desktop) */
+        .drop-slot:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* Show tooltip on tap (mobile) via class toggled by JS */
+        .drop-slot.show-tooltip .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Center L slots */
+        .drop-slot.center-l {
+            border-color: #b68b40;
+            background: #f5e6c8;
+            border-width: 4px;
+            box-shadow: 0 0 0 3px #f3a71233, inset 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .drop-slot.center-l.filled {
+            background: #f5d78e;
+            border-color: #b68b40;
+            box-shadow: 0 0 0 3px #f3a71266, inset 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .drop-slot.center-l .slot-label {
+            color: #b68b40;
+            font-weight: 800;
         }
         .drop-slot.filled {
             background: #f5e6c8;
@@ -86,6 +178,7 @@
             border-color: #f3a712;
             transform: scale(1.05);
         }
+
         .letters-pool {
             background: #cbdce7;
             border-radius: 32px;
@@ -113,7 +206,6 @@
             box-shadow: 0 5px 0 #0f3b4b, 0 8px 16px rgba(0,0,0,0.2);
             transition: 0.08s linear;
             touch-action: none;
-            /* Prevent text selection */
             -webkit-user-select: none;
             user-select: none;
         }
@@ -133,7 +225,11 @@
             opacity: 0.5;
             pointer-events: none;
         }
-        /* Cloned tile for visual feedback during drag */
+        .letter-tile.letter-l {
+            background: #f5d78e;
+            border-color: #b68b40;
+            box-shadow: 0 5px 0 #7a5f30, 0 8px 16px rgba(0,0,0,0.2);
+        }
         .clone-tile {
             position: fixed;
             width: 68px;
@@ -153,6 +249,10 @@
             transform: scale(1.08);
             opacity: 0.92;
             touch-action: none;
+        }
+        .clone-tile.letter-l {
+            background: #f5d78e;
+            border-color: #b68b40;
         }
         .btn-group {
             margin-top: 20px;
@@ -196,23 +296,66 @@
         .status-msg.win {
             color: #1d7a3e;
         }
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 2px solid #cbdce7;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1f5a72;
+        }
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 6px;
+            border: 2px solid #2b7a8f;
+            flex-shrink: 0;
+        }
+        .legend-color.center {
+            border-color: #b68b40;
+            background: #f5d78e;
+        }
+        .legend-color.outer {
+            background: #ffffffcc;
+        }
+
         /* Mobile optimizations */
-        @media (max-width: 480px) {
+        @media (max-width: 500px) {
             .game-container { padding: 14px 10px 22px; border-radius: 28px; }
             h1 { font-size: 1.3rem; }
-            .drop-slot { width: 54px; height: 54px; font-size: 1.5rem; border-radius: 12px; }
+            .drop-slot { width: 58px; height: 70px; font-size: 1.5rem; border-radius: 12px; }
+            .drop-slot .letter-display { font-size: 1.5rem; }
+            .drop-slot .slot-label { font-size: 0.4rem; }
+            .drop-slot .tooltip { width: 130px; font-size: 0.6rem; padding: 6px 10px; bottom: calc(100% + 6px); }
+            .drop-slot .tooltip .tooltip-title { font-size: 0.7rem; }
             .letter-tile { width: 58px; height: 58px; font-size: 1.7rem; border-radius: 12px; }
             .clone-tile { width: 58px; height: 58px; font-size: 1.7rem; }
-            .drop-zone { padding: 14px 8px; gap: 8px; min-height: 80px; }
+            .drop-zone { padding: 14px 8px; gap: 6px; min-height: 80px; }
             .letters-pool { padding: 12px 8px; gap: 10px; min-height: 64px; }
             button { padding: 12px 18px; font-size: 0.9rem; min-height: 44px; min-width: 90px; }
             .subtitle { font-size: 0.8rem; }
+            .legend { gap: 10px; font-size: 0.6rem; }
+            .legend-color { width: 14px; height: 14px; }
         }
         @media (max-width: 380px) {
-            .drop-slot { width: 44px; height: 44px; font-size: 1.2rem; }
+            .drop-slot { width: 48px; height: 60px; font-size: 1.2rem; }
+            .drop-slot .letter-display { font-size: 1.2rem; }
+            .drop-slot .slot-label { font-size: 0.35rem; }
+            .drop-slot .tooltip { width: 100px; font-size: 0.5rem; padding: 4px 8px; }
+            .drop-slot .tooltip .tooltip-title { font-size: 0.6rem; }
             .letter-tile { width: 48px; height: 48px; font-size: 1.4rem; }
             .clone-tile { width: 48px; height: 48px; font-size: 1.4rem; }
-            .drop-zone { gap: 5px; padding: 10px 5px; }
+            .drop-zone { gap: 4px; padding: 10px 5px; }
             .letters-pool { gap: 6px; padding: 10px 5px; }
         }
     </style>
@@ -221,14 +364,51 @@
 
 <div class="game-container" id="app">
     <h1>✈️ SHELL Model</h1>
-    <div class="subtitle">Drag letters into the correct order: S · H · E · L · L</div>
+    <div class="subtitle">Hover or tap a slot to learn what each letter means</div>
+    <div class="model-hint">👤 <strong>Liveware</strong> is at the center — surrounded by the other elements</div>
 
     <div class="drop-zone" id="dropZone">
-        <div class="drop-slot" data-index="0"></div>
-        <div class="drop-slot" data-index="1"></div>
-        <div class="drop-slot" data-index="2"></div>
-        <div class="drop-slot" data-index="3"></div>
-        <div class="drop-slot" data-index="4"></div>
+        <!-- S - H - L - L - E -->
+        <div class="drop-slot" data-index="0" data-expected="S">
+            <span class="letter-display"></span>
+            <span class="slot-label">S</span>
+            <div class="tooltip">
+                <span class="tooltip-title">Software</span>
+                Procedures, checklists, manuals, signage, and computer systems that guide human performance.
+            </div>
+        </div>
+        <div class="drop-slot" data-index="1" data-expected="H">
+            <span class="letter-display"></span>
+            <span class="slot-label">H</span>
+            <div class="tooltip">
+                <span class="tooltip-title">Hardware</span>
+                Tools, ground support equipment (GSE), aircraft systems, and physical infrastructure.
+            </div>
+        </div>
+        <div class="drop-slot center-l" data-index="2" data-expected="L">
+            <span class="letter-display"></span>
+            <span class="slot-label">L</span>
+            <div class="tooltip">
+                <span class="tooltip-title">Liveware (Others)</span>
+                Other people in the system — colleagues, pilots, ATC, ground crew, passengers. Teamwork and communication.
+            </div>
+        </div>
+        <div class="drop-slot center-l" data-index="3" data-expected="L">
+            <span class="letter-display"></span>
+            <span class="slot-label">L</span>
+            <div class="tooltip">
+                <span class="tooltip-title">Liveware (You)</span>
+                The individual — your health, fatigue, stress, situational awareness, and decision-making.
+            </div>
+        </div>
+        <div class="drop-slot" data-index="4" data-expected="E">
+            <span class="letter-display"></span>
+            <span class="slot-label">E</span>
+            <div class="tooltip">
+                <span class="tooltip-title">Environment</span>
+                Weather, noise, lighting, temperature, workspace layout, and organizational culture.
+            </div>
+        </div>
     </div>
 
     <div class="letters-pool" id="lettersPool"></div>
@@ -238,14 +418,26 @@
         <button id="checkBtn">✅ Check</button>
     </div>
     <div class="status-msg" id="statusMsg"></div>
+
+    <div class="legend">
+        <span class="legend-item">
+            <span class="legend-color center"></span> Center = Liveware
+        </span>
+        <span class="legend-item">
+            <span class="legend-color outer"></span> Surrounding elements
+        </span>
+        <span class="legend-item">
+            👆 Tap or hover for details
+        </span>
+    </div>
 </div>
 
 <script>
     (function() {
         'use strict';
 
-        const CORRECT = ['S','H','E','L','L'];
-        const LETTERS = ['S','H','E','L','L'];
+        const CORRECT = ['S', 'H', 'L', 'L', 'E'];
+        const LETTERS = ['S', 'H', 'L', 'L', 'E'];
 
         const dropZone = document.getElementById('dropZone');
         const pool = document.getElementById('lettersPool');
@@ -260,35 +452,63 @@
         let isDragging = false;
         let dragTile = null;
         let dragLetter = '';
-        let dragIndex = -1;          // index in tileLetters
-        let dragSourceSlot = -1;     // -1 if from pool, otherwise slot index
+        let dragIndex = -1;
+        let dragSourceSlot = -1;
         let cloneEl = null;
         let touchOffsetX = 0;
         let touchOffsetY = 0;
+
+        // ---- Tooltip toggle for mobile ----
+        function setupTooltipToggle() {
+            const slots = document.querySelectorAll('.drop-slot');
+            slots.forEach(slot => {
+                slot.addEventListener('click', function(e) {
+                    // Only toggle if not dragging
+                    if (isDragging) return;
+                    // Close other tooltips
+                    document.querySelectorAll('.drop-slot.show-tooltip').forEach(el => {
+                        if (el !== this) el.classList.remove('show-tooltip');
+                    });
+                    this.classList.toggle('show-tooltip');
+                });
+                // Close tooltip when clicking elsewhere
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('.drop-slot')) {
+                        document.querySelectorAll('.drop-slot.show-tooltip').forEach(el => {
+                            el.classList.remove('show-tooltip');
+                        });
+                    }
+                });
+            });
+        }
 
         // ---- Render ----
         function render() {
             const slotElements = dropZone.querySelectorAll('.drop-slot');
             slotElements.forEach((el, i) => {
                 const letter = slots[i] || '';
-                el.textContent = letter;
+                const display = el.querySelector('.letter-display');
+                if (display) display.textContent = letter;
                 el.classList.toggle('filled', letter !== '');
+                if (i >= 2 && i <= 3 && letter === 'L') {
+                    el.classList.add('center-l');
+                } else if (i >= 2 && i <= 3) {
+                    el.classList.add('center-l');
+                }
             });
 
             pool.innerHTML = '';
             tileLetters.forEach((letter, idx) => {
                 const tile = document.createElement('div');
                 tile.className = 'letter-tile';
+                if (letter === 'L') tile.classList.add('letter-l');
                 tile.textContent = letter;
                 tile.dataset.index = idx;
                 tile.dataset.letter = letter;
 
-                // Touch events
                 tile.addEventListener('touchstart', onTouchStart, { passive: false });
                 tile.addEventListener('touchmove', onTouchMove, { passive: false });
                 tile.addEventListener('touchend', onTouchEnd, { passive: false });
-
-                // Mouse drag events (desktop)
                 tile.addEventListener('mousedown', onMouseDown);
 
                 pool.appendChild(tile);
@@ -298,7 +518,7 @@
                 statusMsg.textContent = '';
                 statusMsg.className = 'status-msg';
             } else {
-                statusMsg.textContent = '🎉 Perfect! SHELL assembled correctly!';
+                statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
                 statusMsg.className = 'status-msg win';
             }
         }
@@ -313,7 +533,7 @@
 
         // ---- Reset ----
         function resetGame() {
-            const allLetters = ['S','H','E','L','L'];
+            const allLetters = ['S', 'H', 'L', 'L', 'E'];
             for (let i = allLetters.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allLetters[i], allLetters[j]] = [allLetters[j], allLetters[i]];
@@ -325,78 +545,33 @@
             render();
         }
 
-        // ---- Place letter into slot ----
-        function placeLetter(letter, slotIndex) {
-            if (slots[slotIndex] !== '') return false;
-            slots[slotIndex] = letter;
-            return true;
-        }
-
-        // ---- Remove letter from slot (return it to pool) ----
-        function removeFromSlot(slotIndex) {
-            const letter = slots[slotIndex];
-            if (!letter) return null;
-            slots[slotIndex] = '';
-            return letter;
-        }
-
-        // ---- Rebuild pool from slots (for consistency) ----
-        function rebuildPoolFromSlots() {
-            const slotCount = { S:0, H:0, E:0, L:0 };
-            for (let i = 0; i < 5; i++) {
-                const letter = slots[i];
-                if (letter) slotCount[letter] = (slotCount[letter] || 0) + 1;
-            }
-            const required = { S:1, H:1, E:1, L:2 };
-            const poolLetters = [];
-            for (const [letter, needed] of Object.entries(required)) {
-                const present = slotCount[letter] || 0;
-                const add = needed - present;
-                for (let i = 0; i < add; i++) {
-                    poolLetters.push(letter);
-                }
-            }
-            for (let i = poolLetters.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [poolLetters[i], poolLetters[j]] = [poolLetters[j], poolLetters[i]];
-            }
-            tileLetters = poolLetters;
-        }
-
-        // ---- Drop logic (shared for touch & mouse) ----
+        // ---- Perform drop ----
         function performDrop(letter, slotIndex) {
-            // If slot is occupied, swap
             if (slots[slotIndex] !== '') {
                 const slotLetter = slots[slotIndex];
-                // Put slot letter back into pool
                 tileLetters.push(slotLetter);
-                // Place dragged letter into slot
                 slots[slotIndex] = letter;
-                // Remove dragged letter from pool (find and remove one occurrence)
                 const idx = tileLetters.indexOf(letter);
                 if (idx !== -1) tileLetters.splice(idx, 1);
-                // Shuffle pool a bit
                 for (let i = tileLetters.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [tileLetters[i], tileLetters[j]] = [tileLetters[j], tileLetters[i]];
                 }
                 render();
                 if (isCorrect()) {
-                    statusMsg.textContent = '🎉 Perfect! SHELL assembled correctly!';
+                    statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
                     statusMsg.className = 'status-msg win';
                 }
                 return true;
             }
 
-            // Slot is empty - place letter
-            // Remove letter from pool
             const idx = tileLetters.indexOf(letter);
             if (idx !== -1) {
                 tileLetters.splice(idx, 1);
                 slots[slotIndex] = letter;
                 render();
                 if (isCorrect()) {
-                    statusMsg.textContent = '🎉 Perfect! SHELL assembled correctly!';
+                    statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
                     statusMsg.className = 'status-msg win';
                 }
                 return true;
@@ -423,16 +598,17 @@
 
             tile.classList.add('dragging');
 
-            // Create clone
             cloneEl = document.createElement('div');
             cloneEl.className = 'clone-tile';
+            if (dragLetter === 'L') cloneEl.classList.add('letter-l');
             cloneEl.textContent = dragLetter;
             cloneEl.style.left = (touch.clientX - touchOffsetX) + 'px';
             cloneEl.style.top = (touch.clientY - touchOffsetY) + 'px';
             document.body.appendChild(cloneEl);
 
-            // Highlight drop slots
             document.querySelectorAll('.drop-slot').forEach(el => el.classList.add('highlight'));
+            // Close any open tooltips during drag
+            document.querySelectorAll('.drop-slot.show-tooltip').forEach(el => el.classList.remove('show-tooltip'));
         }
 
         function onTouchMove(e) {
@@ -443,7 +619,6 @@
             cloneEl.style.left = (touch.clientX - touchOffsetX) + 'px';
             cloneEl.style.top = (touch.clientY - touchOffsetY) + 'px';
 
-            // Highlight slot under finger
             const el = document.elementFromPoint(touch.clientX, touch.clientY);
             document.querySelectorAll('.drop-slot').forEach(s => s.classList.remove('drag-over'));
             if (el) {
@@ -456,13 +631,11 @@
             if (!isDragging) return;
             e.preventDefault();
 
-            // Remove clone
             if (cloneEl) {
                 cloneEl.remove();
                 cloneEl = null;
             }
 
-            // Remove highlights
             document.querySelectorAll('.drop-slot').forEach(el => {
                 el.classList.remove('highlight', 'drag-over');
             });
@@ -471,7 +644,6 @@
                 dragTile.classList.remove('dragging');
             }
 
-            // Find slot under finger
             const touch = e.changedTouches[0];
             const el = document.elementFromPoint(touch.clientX, touch.clientY);
             let slotIndex = -1;
@@ -486,7 +658,6 @@
                 performDrop(dragLetter, slotIndex);
             }
 
-            // Reset drag state
             isDragging = false;
             dragTile = null;
             dragLetter = '';
@@ -494,17 +665,14 @@
             dragSourceSlot = -1;
         }
 
-        // ---- MOUSE HANDLERS (desktop fallback) ----
+        // ---- MOUSE HANDLERS ----
         function onMouseDown(e) {
             const tile = e.currentTarget;
             if (tile.classList.contains('placed')) return;
 
-            // We'll use native drag for desktop (simpler)
-            // But we need to set dataTransfer
             const letter = tile.dataset.letter;
             const idx = parseInt(tile.dataset.index, 10);
 
-            // For desktop, we use the HTML5 drag API
             tile.draggable = true;
             tile.style.cursor = 'grabbing';
 
@@ -516,11 +684,9 @@
                 dragLetter = letter;
                 dragTile = tile;
                 isDragging = true;
-
-                // Remove after dragstart
                 tile.removeEventListener('dragstart', dragStartHandler);
-                // Add dragend handler
                 tile.addEventListener('dragend', dragEndHandler);
+                document.querySelectorAll('.drop-slot.show-tooltip').forEach(el => el.classList.remove('show-tooltip'));
             };
 
             const dragEndHandler = (ev) => {
@@ -536,11 +702,9 @@
             };
 
             tile.addEventListener('dragstart', dragStartHandler);
-
-            // Also allow drop on slots (already set up via HTML5)
         }
 
-        // ---- HTML5 Drag & Drop for desktop (slots) ----
+        // ---- HTML5 Drag & Drop ----
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
@@ -564,28 +728,26 @@
             const letter = e.dataTransfer.getData('text/plain');
             if (!letter) return;
 
-            // Find if letter exists in pool
             const idx = tileLetters.indexOf(letter);
             if (idx === -1) return;
 
-            // Perform drop
             performDrop(letter, slotIndex);
         });
 
         // ---- Check button ----
         function checkSolution() {
             if (isCorrect()) {
-                statusMsg.textContent = '🎉 Correct! SHELL is properly assembled.';
+                statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
                 statusMsg.className = 'status-msg win';
             } else {
-                statusMsg.textContent = '❌ Not quite right. Keep arranging! (S-H-E-L-L)';
+                statusMsg.textContent = '❌ Not quite right. Remember: L (Liveware) goes in the center!';
                 statusMsg.className = 'status-msg';
             }
         }
 
         // ---- Init ----
         function initGame() {
-            const letters = ['S','H','E','L','L'];
+            const letters = ['S', 'H', 'L', 'L', 'E'];
             for (let i = letters.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [letters[i], letters[j]] = [letters[j], letters[i]];
@@ -593,8 +755,9 @@
             tileLetters = letters;
             slots = ['', '', '', '', ''];
             render();
-            statusMsg.textContent = 'Drag letters into the correct order: S H E L L';
+            statusMsg.textContent = 'Drag letters into position — L (Liveware) goes in the center!';
             statusMsg.className = 'status-msg';
+            setupTooltipToggle();
         }
 
         resetBtn.addEventListener('click', resetGame);
@@ -602,7 +765,6 @@
 
         initGame();
 
-        // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (cloneEl) cloneEl.remove();
         });
@@ -611,4 +773,4 @@
 </script>
 
 </body>
-</html>
+</html> 
