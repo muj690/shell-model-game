@@ -26,7 +26,7 @@
             padding: 20px 16px 30px;
             border-radius: 40px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            max-width: 650px;
+            max-width: 550px;
             width: 100%;
             text-align: center;
         }
@@ -44,7 +44,7 @@
             font-size: 0.9rem;
         }
         .model-hint {
-            margin: 0 0 14px 0;
+            margin: 0 0 16px 0;
             color: #b68b40;
             font-weight: 700;
             font-size: 0.85rem;
@@ -53,18 +53,23 @@
             border-radius: 30px;
             display: inline-block;
         }
+        /* Checkerboard grid layout */
         .drop-zone {
             background: #d4e2ec;
             border-radius: 40px;
-            padding: 18px 12px;
+            padding: 20px 12px;
             margin-bottom: 20px;
             border: 4px dashed #2b7a8f;
-            min-height: 100px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            min-height: 200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
             gap: 8px;
-            flex-wrap: wrap;
+            justify-items: center;
+            align-items: center;
+            max-width: 380px;
+            margin-left: auto;
+            margin-right: auto;
             transition: background 0.2s;
             position: relative;
         }
@@ -72,9 +77,10 @@
             background: #c0dae8;
             border-color: #f3a712;
         }
+        /* Position each slot in the grid */
         .drop-slot {
-            width: 72px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             background: #ffffffcc;
             border-radius: 16px;
             border: 3px solid #2b7a8f;
@@ -104,6 +110,13 @@
             text-transform: uppercase;
             margin-top: 2px;
         }
+        /* Position each slot in the checkerboard */
+        .drop-slot[data-index="0"] { grid-column: 2; grid-row: 1; } /* Top - S */
+        .drop-slot[data-index="1"] { grid-column: 3; grid-row: 2; } /* Right - H */
+        .drop-slot[data-index="2"] { grid-column: 2; grid-row: 3; } /* Bottom - E */
+        .drop-slot[data-index="3"] { grid-column: 1; grid-row: 2; } /* Left - L (Others) */
+        .drop-slot[data-index="4"] { grid-column: 2; grid-row: 2; } /* Center - L (You) */
+
         /* Tooltip */
         .drop-slot .tooltip {
             visibility: hidden;
@@ -116,7 +129,7 @@
             color: #fff;
             padding: 8px 12px;
             border-radius: 10px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 500;
             width: 160px;
             text-align: center;
@@ -137,28 +150,28 @@
         }
         .drop-slot .tooltip .tooltip-title {
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             display: block;
             margin-bottom: 2px;
             color: #f3a712;
         }
-        /* Show tooltip on hover (desktop) */
         .drop-slot:hover .tooltip {
             visibility: visible;
             opacity: 1;
         }
-        /* Show tooltip on tap (mobile) via class toggled by JS */
         .drop-slot.show-tooltip .tooltip {
             visibility: visible;
             opacity: 1;
         }
 
-        /* Center L slots */
+        /* Center L slot (Individual Liveware) - special styling */
         .drop-slot.center-l {
             border-color: #b68b40;
-            background: #f5e6c8;
+            background: #f5d78e;
             border-width: 4px;
             box-shadow: 0 0 0 3px #f3a71233, inset 0 2px 6px rgba(0,0,0,0.05);
+            transform: scale(1.1);
+            z-index: 2;
         }
         .drop-slot.center-l.filled {
             background: #f5d78e;
@@ -168,6 +181,10 @@
         .drop-slot.center-l .slot-label {
             color: #b68b40;
             font-weight: 800;
+            font-size: 0.6rem;
+        }
+        .drop-slot.center-l .letter-display {
+            font-size: 2.2rem;
         }
         .drop-slot.filled {
             background: #f5e6c8;
@@ -177,6 +194,31 @@
             background: #f5e6c8;
             border-color: #f3a712;
             transform: scale(1.05);
+        }
+
+        /* Connection lines (visual) */
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 60%;
+            border: 2px dashed #2b7a8f33;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .drop-zone::after {
+            content: '✧';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            color: #2b7a8f11;
+            pointer-events: none;
         }
 
         .letters-pool {
@@ -189,6 +231,7 @@
             flex-wrap: wrap;
             min-height: 76px;
             touch-action: none;
+            margin-top: 10px;
         }
         .letter-tile {
             width: 68px;
@@ -230,6 +273,18 @@
             border-color: #b68b40;
             box-shadow: 0 5px 0 #7a5f30, 0 8px 16px rgba(0,0,0,0.2);
         }
+        /* Special highlight for the L tile that should go in center */
+        .letter-tile.letter-l-center {
+            background: #f5c842;
+            border-color: #b68b40;
+            box-shadow: 0 5px 0 #7a5f30, 0 8px 16px rgba(0,0,0,0.3);
+            animation: pulse-gold 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-gold {
+            0%, 100% { transform: scale(1); box-shadow: 0 5px 0 #7a5f30, 0 8px 16px rgba(0,0,0,0.2); }
+            50% { transform: scale(1.05); box-shadow: 0 5px 0 #7a5f30, 0 12px 24px rgba(180, 130, 0, 0.3); }
+        }
+
         .clone-tile {
             position: fixed;
             width: 68px;
@@ -296,7 +351,6 @@
         .status-msg.win {
             color: #1d7a3e;
         }
-        /* Legend */
         .legend {
             display: flex;
             justify-content: center;
@@ -329,34 +383,36 @@
             background: #ffffffcc;
         }
 
-        /* Mobile optimizations */
-        @media (max-width: 500px) {
+        @media (max-width: 480px) {
             .game-container { padding: 14px 10px 22px; border-radius: 28px; }
             h1 { font-size: 1.3rem; }
-            .drop-slot { width: 58px; height: 70px; font-size: 1.5rem; border-radius: 12px; }
-            .drop-slot .letter-display { font-size: 1.5rem; }
+            .drop-zone { max-width: 300px; padding: 14px 8px; gap: 5px; min-height: 160px; }
+            .drop-slot { width: 56px; height: 56px; font-size: 1.4rem; border-radius: 12px; }
+            .drop-slot .letter-display { font-size: 1.4rem; }
             .drop-slot .slot-label { font-size: 0.4rem; }
-            .drop-slot .tooltip { width: 130px; font-size: 0.6rem; padding: 6px 10px; bottom: calc(100% + 6px); }
-            .drop-slot .tooltip .tooltip-title { font-size: 0.7rem; }
-            .letter-tile { width: 58px; height: 58px; font-size: 1.7rem; border-radius: 12px; }
-            .clone-tile { width: 58px; height: 58px; font-size: 1.7rem; }
-            .drop-zone { padding: 14px 8px; gap: 6px; min-height: 80px; }
-            .letters-pool { padding: 12px 8px; gap: 10px; min-height: 64px; }
+            .drop-slot .tooltip { width: 120px; font-size: 0.55rem; padding: 5px 8px; }
+            .drop-slot .tooltip .tooltip-title { font-size: 0.65rem; }
+            .drop-slot.center-l .letter-display { font-size: 1.8rem; }
+            .letter-tile { width: 56px; height: 56px; font-size: 1.6rem; border-radius: 12px; }
+            .clone-tile { width: 56px; height: 56px; font-size: 1.6rem; }
+            .letters-pool { padding: 12px 8px; gap: 10px; min-height: 60px; }
             button { padding: 12px 18px; font-size: 0.9rem; min-height: 44px; min-width: 90px; }
             .subtitle { font-size: 0.8rem; }
             .legend { gap: 10px; font-size: 0.6rem; }
             .legend-color { width: 14px; height: 14px; }
+            .drop-zone::after { font-size: 3rem; }
         }
         @media (max-width: 380px) {
-            .drop-slot { width: 48px; height: 60px; font-size: 1.2rem; }
-            .drop-slot .letter-display { font-size: 1.2rem; }
+            .drop-zone { max-width: 240px; padding: 10px 5px; gap: 4px; min-height: 130px; }
+            .drop-slot { width: 46px; height: 46px; font-size: 1.1rem; border-radius: 10px; }
+            .drop-slot .letter-display { font-size: 1.1rem; }
             .drop-slot .slot-label { font-size: 0.35rem; }
-            .drop-slot .tooltip { width: 100px; font-size: 0.5rem; padding: 4px 8px; }
-            .drop-slot .tooltip .tooltip-title { font-size: 0.6rem; }
-            .letter-tile { width: 48px; height: 48px; font-size: 1.4rem; }
-            .clone-tile { width: 48px; height: 48px; font-size: 1.4rem; }
-            .drop-zone { gap: 4px; padding: 10px 5px; }
-            .letters-pool { gap: 6px; padding: 10px 5px; }
+            .drop-slot .tooltip { width: 100px; font-size: 0.5rem; padding: 4px 6px; }
+            .drop-slot .tooltip .tooltip-title { font-size: 0.55rem; }
+            .drop-slot.center-l .letter-display { font-size: 1.4rem; }
+            .letter-tile { width: 46px; height: 46px; font-size: 1.3rem; }
+            .clone-tile { width: 46px; height: 46px; font-size: 1.3rem; }
+            .drop-zone::after { font-size: 2.5rem; }
         }
     </style>
 </head>
@@ -364,11 +420,11 @@
 
 <div class="game-container" id="app">
     <h1>✈️ SHELL Model</h1>
-    <div class="subtitle">Hover or tap a slot to learn what each letter means</div>
-    <div class="model-hint">👤 <strong>Liveware</strong> is at the center — surrounded by the other elements</div>
+    <div class="subtitle">Place each letter in its correct position</div>
+    <div class="model-hint">👤 <strong>YOU</strong> are at the center — surrounded by the other elements</div>
 
     <div class="drop-zone" id="dropZone">
-        <!-- S - H - L - L - E -->
+        <!-- Grid positions: Top, Right, Bottom, Left, Center -->
         <div class="drop-slot" data-index="0" data-expected="S">
             <span class="letter-display"></span>
             <span class="slot-label">S</span>
@@ -385,28 +441,28 @@
                 Tools, ground support equipment (GSE), aircraft systems, and physical infrastructure.
             </div>
         </div>
-        <div class="drop-slot center-l" data-index="2" data-expected="L">
-            <span class="letter-display"></span>
-            <span class="slot-label">L</span>
-            <div class="tooltip">
-                <span class="tooltip-title">Liveware (Others)</span>
-                Other people in the system — colleagues, pilots, ATC, ground crew, passengers. Teamwork and communication.
-            </div>
-        </div>
-        <div class="drop-slot center-l" data-index="3" data-expected="L">
-            <span class="letter-display"></span>
-            <span class="slot-label">L</span>
-            <div class="tooltip">
-                <span class="tooltip-title">Liveware (You)</span>
-                The individual — your health, fatigue, stress, situational awareness, and decision-making.
-            </div>
-        </div>
-        <div class="drop-slot" data-index="4" data-expected="E">
+        <div class="drop-slot" data-index="2" data-expected="E">
             <span class="letter-display"></span>
             <span class="slot-label">E</span>
             <div class="tooltip">
                 <span class="tooltip-title">Environment</span>
                 Weather, noise, lighting, temperature, workspace layout, and organizational culture.
+            </div>
+        </div>
+        <div class="drop-slot" data-index="3" data-expected="L">
+            <span class="letter-display"></span>
+            <span class="slot-label">L</span>
+            <div class="tooltip">
+                <span class="tooltip-title">Liveware (Others)</span>
+                Other people in the system — colleagues, pilots, ATC, ground crew, passengers.
+            </div>
+        </div>
+        <div class="drop-slot center-l" data-index="4" data-expected="L">
+            <span class="letter-display"></span>
+            <span class="slot-label">★ YOU</span>
+            <div class="tooltip">
+                <span class="tooltip-title">Liveware (YOU)</span>
+                <strong>You are at the center!</strong> Your health, fatigue, stress, situational awareness, and decision-making matter most.
             </div>
         </div>
     </div>
@@ -421,13 +477,13 @@
 
     <div class="legend">
         <span class="legend-item">
-            <span class="legend-color center"></span> Center = Liveware
+            <span class="legend-color center"></span> ★ YOU (Center)
         </span>
         <span class="legend-item">
-            <span class="legend-color outer"></span> Surrounding elements
+            <span class="legend-color outer"></span> Surrounding Elements
         </span>
         <span class="legend-item">
-            👆 Tap or hover for details
+            👆 Tap for details
         </span>
     </div>
 </div>
@@ -436,8 +492,9 @@
     (function() {
         'use strict';
 
-        const CORRECT = ['S', 'H', 'L', 'L', 'E'];
-        const LETTERS = ['S', 'H', 'L', 'L', 'E'];
+        // Correct positions: Top=S, Right=H, Bottom=E, Left=L, Center=L
+        const CORRECT = ['S', 'H', 'E', 'L', 'L'];
+        const LETTERS = ['S', 'H', 'E', 'L', 'L'];
 
         const dropZone = document.getElementById('dropZone');
         const pool = document.getElementById('lettersPool');
@@ -453,7 +510,6 @@
         let dragTile = null;
         let dragLetter = '';
         let dragIndex = -1;
-        let dragSourceSlot = -1;
         let cloneEl = null;
         let touchOffsetX = 0;
         let touchOffsetY = 0;
@@ -463,15 +519,12 @@
             const slots = document.querySelectorAll('.drop-slot');
             slots.forEach(slot => {
                 slot.addEventListener('click', function(e) {
-                    // Only toggle if not dragging
                     if (isDragging) return;
-                    // Close other tooltips
                     document.querySelectorAll('.drop-slot.show-tooltip').forEach(el => {
                         if (el !== this) el.classList.remove('show-tooltip');
                     });
                     this.classList.toggle('show-tooltip');
                 });
-                // Close tooltip when clicking elsewhere
                 document.addEventListener('click', function(e) {
                     if (!e.target.closest('.drop-slot')) {
                         document.querySelectorAll('.drop-slot.show-tooltip').forEach(el => {
@@ -490,18 +543,32 @@
                 const display = el.querySelector('.letter-display');
                 if (display) display.textContent = letter;
                 el.classList.toggle('filled', letter !== '');
-                if (i >= 2 && i <= 3 && letter === 'L') {
-                    el.classList.add('center-l');
-                } else if (i >= 2 && i <= 3) {
+                // Center slot is index 4
+                if (i === 4) {
                     el.classList.add('center-l');
                 }
             });
 
             pool.innerHTML = '';
+            // Track if we have L tiles to highlight one as "center"
+            let lCount = 0;
+            tileLetters.forEach((letter) => {
+                if (letter === 'L') lCount++;
+            });
+
+            let lAssigned = 0;
             tileLetters.forEach((letter, idx) => {
                 const tile = document.createElement('div');
                 tile.className = 'letter-tile';
-                if (letter === 'L') tile.classList.add('letter-l');
+                if (letter === 'L') {
+                    tile.classList.add('letter-l');
+                    // If there are 2 L's, highlight one as the "center" tile
+                    if (lCount === 2 && lAssigned === 0) {
+                        tile.classList.add('letter-l-center');
+                        tile.dataset.centerCandidate = 'true';
+                    }
+                    lAssigned++;
+                }
                 tile.textContent = letter;
                 tile.dataset.index = idx;
                 tile.dataset.letter = letter;
@@ -518,7 +585,7 @@
                 statusMsg.textContent = '';
                 statusMsg.className = 'status-msg';
             } else {
-                statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
+                statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                 statusMsg.className = 'status-msg win';
             }
         }
@@ -533,7 +600,7 @@
 
         // ---- Reset ----
         function resetGame() {
-            const allLetters = ['S', 'H', 'L', 'L', 'E'];
+            const allLetters = ['S', 'H', 'E', 'L', 'L'];
             for (let i = allLetters.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allLetters[i], allLetters[j]] = [allLetters[j], allLetters[i]];
@@ -559,7 +626,7 @@
                 }
                 render();
                 if (isCorrect()) {
-                    statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
+                    statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                     statusMsg.className = 'status-msg win';
                 }
                 return true;
@@ -571,7 +638,7 @@
                 slots[slotIndex] = letter;
                 render();
                 if (isCorrect()) {
-                    statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
+                    statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                     statusMsg.className = 'status-msg win';
                 }
                 return true;
@@ -593,7 +660,6 @@
             dragTile = tile;
             dragLetter = tile.dataset.letter;
             dragIndex = parseInt(tile.dataset.index, 10);
-            dragSourceSlot = -1;
             isDragging = true;
 
             tile.classList.add('dragging');
@@ -607,7 +673,6 @@
             document.body.appendChild(cloneEl);
 
             document.querySelectorAll('.drop-slot').forEach(el => el.classList.add('highlight'));
-            // Close any open tooltips during drag
             document.querySelectorAll('.drop-slot.show-tooltip').forEach(el => el.classList.remove('show-tooltip'));
         }
 
@@ -662,7 +727,6 @@
             dragTile = null;
             dragLetter = '';
             dragIndex = -1;
-            dragSourceSlot = -1;
         }
 
         // ---- MOUSE HANDLERS ----
@@ -737,17 +801,17 @@
         // ---- Check button ----
         function checkSolution() {
             if (isCorrect()) {
-                statusMsg.textContent = '🎉 Perfect! Liveware (L) is at the center!';
+                statusMsg.textContent = '🎉 Perfect! YOU (L) are at the center!';
                 statusMsg.className = 'status-msg win';
             } else {
-                statusMsg.textContent = '❌ Not quite right. Remember: L (Liveware) goes in the center!';
+                statusMsg.textContent = '❌ Not quite right. Remember: YOU (L) are at the center!';
                 statusMsg.className = 'status-msg';
             }
         }
 
         // ---- Init ----
         function initGame() {
-            const letters = ['S', 'H', 'L', 'L', 'E'];
+            const letters = ['S', 'H', 'E', 'L', 'L'];
             for (let i = letters.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [letters[i], letters[j]] = [letters[j], letters[i]];
@@ -755,7 +819,7 @@
             tileLetters = letters;
             slots = ['', '', '', '', ''];
             render();
-            statusMsg.textContent = 'Drag letters into position — L (Liveware) goes in the center!';
+            statusMsg.textContent = 'Place the letters — YOU (L) belong at the center!';
             statusMsg.className = 'status-msg';
             setupTooltipToggle();
         }
